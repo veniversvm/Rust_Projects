@@ -1,0 +1,45 @@
+# --- Compilación y Binarios ---
+# El directorio 'target' contiene todos los ejecutables y artefactos de compilación.
+# Es, por mucho, la carpeta más pesada.
+/target/
+
+# --- Archivos de Bloqueo (Locks) ---
+# Si estás construyendo una APLICACIÓN (binario), se recomienda incluir Cargo.lock en Git.
+# Si estás construyendo una LIBRERÍA, descomenta la siguiente línea:
+# Cargo.lock
+
+# --- Backup y Archivos Temporales ---
+# Archivos generados por Cargo al empaquetar o publicar.
+**/*.rs.bk
+*.cargo_lock
+
+# --- Herramientas de Análisis y Perfilado ---
+# Salida de 'cargo profiler' o herramientas de cobertura de código como tarpaulin.
+default.profraw
+*.gcda
+*.gcno
+
+# --- IDEs y Editores ---
+# Visual Studio Code
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# JetBrains / IntelliJ / RustRover
+.idea/
+
+# Vim/Emacs
+*~
+*.swp
+*.swo
+
+# --- Variables de Entorno ---
+# Evita subir secretos, llaves API o configuraciones locales.
+.env
+.env.*
+!.env.example
+
+# --- macOS ---
+.DS_Store
