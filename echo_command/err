@@ -1,0 +1,9 @@
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.14s
+     Running `target/debug/echo_command`
+error: The following required arguments were not provided:
+    <TEXT>...
+
+USAGE:
+    echo_command [FLAGS] <TEXT>...
+
+For more information try --help
