@@ -1,11 +1,56 @@
 use image::ColorType;
-use image::png::PngEncoder;
+use image::png::PNGEncoder;
 use num::Complex;
 use std::fs::File;
 use std::str::FromStr;
+use crossbeam;
 
 fn main() {
     println!("Hello, world!");
+
+    /* extrac arguments */
+    let args: Vec<String> = std::env::args().collect();
+    if args.len() != 5 {
+        eprintln!("Usage: {} FILE PIXELS UPPERLEFT LOWERRIGHT", args[0]);
+        eprintln!("Example: {} mandel.png 1000/75 -1.20,0.35 -1,0.20", args[0]);
+        std::process::exit(1);
+    }
+
+    /* parsing values */
+    let bounds = parse_pair(&args[2], 'x')
+        .expect("error parsing image dimensions");
+    let upper_left = parse_complex(&args[3])
+        .expect("error parsing upper left corner point");
+    let lower_right = parse_complex(&args[4])
+        .expect("error parsing lower rigth corner point");
+
+    let mut pixels = vec![0; bounds.0 * bounds.1];
+
+    /* multi thread render */
+    //render(&mut pixels, bounds, upper_left, lower_right);
+    
+    let threads = 8;
+    let rows_per_band = bounds.1 / threads + 1;
+
+    {
+        let bands: Vec<&mut [u8]> = pixels.chunks_mut(rows_per_band * bounds.0).collect();
+        crossbeam::scope(|spawner| {
+            for (i, band) in bands.into_iter().enumerate(){
+                let top = rows_per_band * 1;
+                let height = band.len() / bounds.0;
+                let band_bounds = (bounds.0, height);
+                let band_upper_left = pixel_to_point(bounds, (0, top), upper_left, lower_right);
+                let band_lower_right = pixel_to_point(bounds, (bounds.0, top + height), upper_left, lower_right);
+                spawner.spawn(move |_| {
+                render(band, band_bounds, band_upper_left, band_lower_right)
+                });
+            }
+        }).unwrap();
+    }
+
+    write_image(&args[1], &pixels, bounds)
+        .expect("error writing PNG file");
+
 }
 
 /// Try to determine if `c` is in the Mandelbrot set,
@@ -135,20 +180,42 @@ fn render(
     pixels: &mut [u8],
     bounds: (usize, usize),
     upper_left: Complex<f64>,
-    lower_right: Complez<f64>,
+    lower_right: Complex<f64>,
 ) {
     assert!(pixels.len() == bounds.0 * bounds.1);
 
     for row in 0..bounds.1 {
         for column in 0..bounds.0 {
-            let point = pixel_to_point(bounds, (column, row), upper_lef, lower_right);
-            pixels[row * bounds.0 + columm] = match escape_time(point, 255) {
+            let point = pixel_to_point(bounds, (column, row), upper_left, lower_right);
+            pixels[row * bounds.0 + column] = match escape_time(point, 255) {
                 None => 0,
                 Some(count) => 255 - count as u8,
             };
         }
     }
 }
+
+/// Try to determine if `c` is in the Mandelbrot set, 
+/// using at most `limit` iterations to decide.
+///
+/// If `c` is not a member, return `Some(i)`, 
+/// where `i` is the number of iterations it took for `c` 
+/// to leave the circle of radius two centered on the origin. 
+/// If `c` seems to be a member (more precisely, if we reached the
+/// iteration limit without being able to prove that `c` 
+/// is not a member), return `None`.
+fn escape_time(c: Complex<f64>, limit: usize) -> Option<usize> {
+    let mut z = Complex { re: 0.0, im: 0.0 };
+    for i in 0..limit {
+        if z.norm_sqr() > 4.0 {
+            return Some(i);
+        }
+        z = z * z + c;
+    }
+
+    None
+}
+
 
 /// Write the buffer `pixels`, whose dimensions are given by
 /// `bounds`, to the file name `filename`.
