@@ -23,12 +23,13 @@ pub fn get_args() -> MyResult<Config> {
                 .min_values(1),
         )
         .arg(
-            Arg::with_name("number")
+            Arg::with_name("lines")
                 .short("n")
                 .long("--lines")
                 .help("Select how many lines")
                 .required(false)
                 .takes_value(true),
+            //.default_value(10 as usize),
         )
         .arg(
             Arg::with_name("bytes")
@@ -40,10 +41,18 @@ pub fn get_args() -> MyResult<Config> {
         )
         .get_matches();
 
+    let lines = match matches.value_of("lines") {
+        Some(v) => parse_positive_int(v)?,
+        None => 10, //Err(e),
+    };
+
+    let file = matches.values_of_lossy("files").unwrap();
+    println!("{:?}", file);
+
     Ok(Config {
-        files: vec!["file".to_string()],
-        lines: 0,
-        bytes: Some(0),
+        files: vec!["-".to_string()],
+        lines,
+        bytes: None,
     })
 }
 
@@ -53,6 +62,7 @@ pub fn run(config: Config) -> MyResult<()> {
 }
 
 fn parse_positive_int(val: &str) -> MyResult<usize> {
+    // println!("Parse {}", val);
     match val.parse() {
         Ok(n) => {
             if n > 0 {
